@@ -71,8 +71,18 @@ function normalize(c: Partial<ShurikenConfig>): ShurikenConfig {
     decks,
     overrides: c.overrides && typeof c.overrides === 'object' ? c.overrides : {},
     favorites: Array.isArray(c.favorites) ? c.favorites : [],
-    appearance: { ...DEFAULT_APPEARANCE, ...(c.appearance || {}) },
+    appearance: migrateFill({ ...DEFAULT_APPEARANCE, ...(c.appearance || {}) }),
   };
+}
+
+/** Older configs stored fill as a boolean: true meant every blade filled. */
+function migrateFill(a: Appearance): Appearance {
+  const legacy = a as unknown as { fill?: unknown };
+  if (typeof legacy.fill === 'boolean') {
+    return { ...a, fill: legacy.fill ? 'all' : 'off' };
+  }
+  if (a.fill !== 'off' && a.fill !== 'hover' && a.fill !== 'all') return { ...a, fill: 'off' };
+  return a;
 }
 
 export function ShurikenProvider({ children }: { children: ReactNode }) {
@@ -363,8 +373,12 @@ export function ShurikenProvider({ children }: { children: ReactNode }) {
   const importConfig = useCallback((c: ShurikenConfig) => update(() => normalize(c)), [update]);
 
   const accent = useMemo(
-    () => accentFor(config.appearance.thermalSync ? thermal.mode : null),
-    [config.appearance.thermalSync, thermal.mode],
+    () => accentFor(config.appearance.thermalSync ? thermal.mode : null, {
+      balance: config.appearance.colorBalance,
+      performance: config.appearance.colorPerformance,
+      quiet: config.appearance.colorQuiet,
+    }),
+    [config.appearance.thermalSync, thermal.mode, config.appearance.colorBalance, config.appearance.colorPerformance, config.appearance.colorQuiet],
   );
 
   const value: Store = {

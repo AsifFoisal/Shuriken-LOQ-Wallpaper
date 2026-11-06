@@ -69,10 +69,12 @@ function writeJson(file, data) {
   fs.renameSync(tmp, file);
 }
 function publicApp(a) {
+  // version the icon URL with the last scan so re-extracted icons bust the browser cache
+  const v = apps.lastScan ? Date.parse(apps.lastScan) : 0;
   return {
     id: a.id, name: a.name, source: a.source, kind: a.kind,
     target: a.target, shortcut: a.shortcut, args: a.args, workingDir: a.workingDir,
-    location: a.location, iconUrl: a.icon ? `/api/icons/${a.id}` : null,
+    location: a.location, iconUrl: a.icon ? `/api/icons/${a.id}?v=${v}` : null,
   };
 }
 function findApp(id) {

@@ -18,9 +18,11 @@ A three-bladed shuriken rests at the center of your desktop. Hover one of its bl
 ## Features
 
 - **Interactive launcher wallpaper** — three spring-animated blades (decks), each fanning out its apps in an *arc*, *fan*, or *spiral* arrangement
-- **Automatic app discovery** — Start Menu, desktop shortcuts, Store/UWP apps, and registry entries, scanned by the companion service with cached icon extraction (including Store-app package logos)
+- **Automatic app discovery** — Start Menu, desktop shortcuts, Store/UWP apps, and registry entries, scanned by the companion service with cached high-resolution (256px) icon extraction, including Store-app package logos
 - **Launch anything** — apps start through the companion (no shell, trusted-ids only); Store apps launch via `shell:AppsFolder`
 - **Thermal mode sync** — on Lenovo LOQ/Legion laptops, the logo mirrors the Fn+Q power mode like the power-button LED: white · balance, red · performance, blue · quiet (driven by real WMI state, so it also tracks LegionZone/Vantage changes)
+- **Panel fill modes** — outline only, hovered blade fills, or the whole shuriken filled with the accent color
+- **Custom accent colors** — pick any hex per mode (picker + hex field in Settings → Appearance)
 - **Rich per-deck management** — custom deck names, per-app icon overrides (30+ built-in glyphs or custom images), favorites, hide/reorder apps, move apps between decks
 - **Appearance controls** — icon size, animation speed, connector filaments, monochrome icons (color on hover), labels on hover/always, favorites-first
 - **Persistent everywhere** — settings sync between the wallpaper and the companion and survive reboots, reinstalls, and cache wipes
@@ -175,6 +177,7 @@ The wallpaper also mirrors the config in its own localStorage and restores which
 | Offline **only in Lively** (fine in browser) | You added the wallpaper as a **file/zip** — re-add it as the URL `http://127.0.0.1:47811/wallpaper` (WebView2 blocks `file:// → localhost` requests) |
 | Hover stops after clicking the desktop | Disable **pause on focus** in Lively's settings |
 | An app has no icon / generic monogram | Open settings → **Rescan**; if still missing, **Force icon refresh** (the app's package may not expose a logo, e.g. Copilot) |
+| Icons look blurry / low-res | Open settings → **Rescan** with force icon refresh — icons re-extract at 256px (old 32px sources get re-cached automatically) |
 | Logo doesn't react to Fn+Q | `cd companion && npm run install-thermal` (accept the UAC prompt), then confirm `curl http://127.0.0.1:47811/api/thermal` reports `"supported": true` |
 | Thermal mode colors look swapped | The LED↔mode mapping lives in `src/lib/thermal.ts` — adjust and rebuild |
 | Launcher blocks clicks in a game | Lively pauses wallpapers over fullscreen apps by design |

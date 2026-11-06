@@ -16,6 +16,7 @@ interface Props {
   speed: number;
   interactive?: boolean;
   accent?: { stroke: string; glow: string };
+  fillMode?: 'off' | 'hover' | 'all';
   onEnter?: (i: SegmentIndex) => void;
   onLeave?: (i: SegmentIndex) => void;
   onSegmentClick?: (i: SegmentIndex) => void;
@@ -26,7 +27,7 @@ const WHITE = { stroke: '#ffffff', glow: 'rgba(255,255,255,.45)' };
 
 function Logo({
   size, strokeWidth, hitPadding, active, hovered, glow, breathing, speed, interactive = true,
-  accent = WHITE,
+  accent = WHITE, fillMode = 'off',
   onEnter, onLeave, onSegmentClick, onSegmentContext,
 }: Props) {
   const k = size / VB;
@@ -69,11 +70,13 @@ function Logo({
                 d={d}
                 initial={false}
                 animate={{
-                  fillOpacity: on ? 1 : hov ? 0.5 : 0,
-                  strokeOpacity: on ? 1 : hov ? 1 : 0.92,
+                  fillOpacity: fillMode === 'all' ? (on || hov ? 1 : 0.9)
+                    : fillMode === 'hover' ? (on ? 1 : hov ? 0.9 : 0)
+                    : on ? 1 : hov ? 0.5 : 0,
+                  strokeOpacity: 1,
                 }}
                 transition={{ duration: 0.35 / speed }}
-                fill="url(#nx-fill)"
+                fill={fillMode === 'off' ? 'url(#nx-fill)' : accent.stroke}
                 stroke={accent.stroke}
                 strokeWidth={strokeWidth}
                 strokeLinejoin="miter"

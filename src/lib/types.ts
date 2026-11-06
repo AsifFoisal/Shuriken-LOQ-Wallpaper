@@ -28,6 +28,8 @@ export interface AppOverride {
 
 export type RevealStyle = 'arc' | 'fan' | 'spiral';
 
+export type FillMode = 'off' | 'hover' | 'all';
+
 export interface Appearance {
   logoSize: number; // % of min(viewport)
   offsetX: number; // % of viewport width
@@ -46,6 +48,10 @@ export interface Appearance {
   favoritesFirst: boolean;
   connectors: boolean;
   thermalSync: boolean;
+  fill: FillMode;
+  colorBalance: string;
+  colorPerformance: string;
+  colorQuiet: string;
 }
 
 export interface ShurikenConfig {

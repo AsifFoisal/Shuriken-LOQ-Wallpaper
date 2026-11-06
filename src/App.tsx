@@ -120,6 +120,7 @@ function Wallpaper() {
           breathing={ap.breathing}
           speed={ap.animationSpeed}
           accent={accent}
+          fillMode={ap.fill}
           onEnter={reveal.enterSegment}
           onLeave={reveal.leaveSegment}
           onSegmentClick={reveal.clickSegment}

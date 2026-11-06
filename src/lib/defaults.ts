@@ -20,6 +20,10 @@ export const DEFAULT_APPEARANCE: Appearance = {
   favoritesFirst: true,
   connectors: true,
   thermalSync: true,
+  fill: 'off',
+  colorBalance: '',
+  colorPerformance: '',
+  colorQuiet: '',
 };
 
 const demo = (id: string, name: string, source = 'demo'): AppEntry => ({ id: `demo-${id}`, name, source, demo: true });

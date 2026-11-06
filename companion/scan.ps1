@@ -12,6 +12,21 @@ $ErrorActionPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Drawing
 
+# SHDefExtractIcon pulls the jumbo (256px) icon directly from exe/dll/ico files,
+# so tiles stay sharp at any icon size. ExtractAssociatedIcon only offers 32px.
+if (-not ('ShIcon' -as [type])) {
+  Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class ShIcon {
+  [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+  public static extern uint SHDefExtractIcon(string pszIconFile, int iIndex, uint uFlags, out IntPtr hiconLarge, out IntPtr hiconSmall, uint nIconSize);
+  [DllImport("user32.dll")]
+  public static extern bool DestroyIcon(IntPtr hIcon);
+}
+"@
+}
+
 if (-not (Test-Path -LiteralPath $IconDir)) { New-Item -ItemType Directory -Path $IconDir -Force | Out-Null }
 
 $shell = New-Object -ComObject WScript.Shell
@@ -42,6 +57,18 @@ function Save-Icon([string]$id, [string[]]$candidates) {
   foreach ($c in $candidates) {
     if (-not $c) { continue }
     if (-not (Test-Path -LiteralPath $c)) { continue }
+    try {
+      $hl = [IntPtr]::Zero; $hs = [IntPtr]::Zero
+      $size = 256 -bor (48 -shl 16)
+      if ([ShIcon]::SHDefExtractIcon($c, 0, 0, [ref]$hl, [ref]$hs, $size) -eq 0 -and $hl -ne [IntPtr]::Zero) {
+        $bmp = [System.Drawing.Icon]::FromHandle($hl).ToBitmap()
+        $bmp.Save($file, [System.Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Dispose()
+        [ShIcon]::DestroyIcon($hl) | Out-Null
+        [ShIcon]::DestroyIcon($hs) | Out-Null
+        return $true
+      }
+    } catch { }
     try {
       $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($c)
       if ($ico) {

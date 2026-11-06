@@ -323,6 +323,32 @@ function LibraryTab({ onRename, onChangeIcon }: { onRename: (a: AppEntry) => voi
 
 /* ================================================================== Appearance */
 
+function ColorField({ value, fallback, onChange }: { value: string; fallback: string; onChange: (v: string) => void }) {
+  const valid = /^#?[0-9a-fA-F]{6}$/.test(value);
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={valid ? (value.startsWith('#') ? value : '#' + value) : fallback}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className="h-7 w-9 cursor-pointer rounded border border-white/15 bg-transparent p-0.5"
+        title="Pick a color"
+      />
+      <input
+        type="text"
+        value={value}
+        placeholder="auto"
+        spellCheck={false}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className={`nx-input w-20 py-1 font-mono text-[11px] ${value && !valid ? 'border-red-400/60' : ''}`}
+      />
+      <button type="button" onClick={() => onChange('')} className="nx-btn px-2 py-1" title="Reset to default color">
+        <RotateCcw className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 function AppearanceTab() {
   const { config, setAppearance, update, thermal } = useShuriken();
   const a = config.appearance;
@@ -337,6 +363,10 @@ function AppearanceTab() {
         <Row label="Outline weight"><Slider value={a.strokeWidth} min={0.6} max={4} step={0.1} onChange={(v) => setAppearance({ strokeWidth: v })} format={(v) => `${v.toFixed(1)}px`} /></Row>
         <Row label="Idle breathing" hint="Very slow luminance pulse while idle"><Toggle value={a.breathing} onChange={(v) => setAppearance({ breathing: v })} /></Row>
         <Row label="Active glow"><Toggle value={a.glow} onChange={(v) => setAppearance({ glow: v })} /></Row>
+        <Row label="Panel fill" hint="Fill the blades with the thermal accent color"><Segmented value={a.fill} onChange={(v) => setAppearance({ fill: v })} options={[{ value: 'off', label: 'Off' }, { value: 'hover', label: 'Hover' }, { value: 'all', label: 'All' }]} /></Row>
+        <Row label="Balance color" hint={`Idle logo (default ${'#F5F5F5'})`}><ColorField value={a.colorBalance} fallback="#F5F5F5" onChange={(v) => setAppearance({ colorBalance: v })} /></Row>
+        <Row label="Performance color" hint={`Fn+Q performance (default ${'#FF0000'})`}><ColorField value={a.colorPerformance} fallback="#FF0000" onChange={(v) => setAppearance({ colorPerformance: v })} /></Row>
+        <Row label="Quiet color" hint={`Fn+Q quiet (default ${'#3A86FF'})`}><ColorField value={a.colorQuiet} fallback="#3A86FF" onChange={(v) => setAppearance({ colorQuiet: v })} /></Row>
         <Row
           label="Thermal mode sync"
           hint={thermal.supported
