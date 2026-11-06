@@ -45,6 +45,7 @@ export interface Appearance {
   monochrome: boolean;
   favoritesFirst: boolean;
   connectors: boolean;
+  thermalSync: boolean;
 }
 
 export interface ShurikenConfig {

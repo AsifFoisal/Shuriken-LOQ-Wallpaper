@@ -324,7 +324,7 @@ function LibraryTab({ onRename, onChangeIcon }: { onRename: (a: AppEntry) => voi
 /* ================================================================== Appearance */
 
 function AppearanceTab() {
-  const { config, setAppearance, update } = useShuriken();
+  const { config, setAppearance, update, thermal } = useShuriken();
   const a = config.appearance;
   const maxAll = Math.round(config.decks.reduce((s, d) => s + d.maxApps, 0) / 3);
   return (
@@ -337,6 +337,14 @@ function AppearanceTab() {
         <Row label="Outline weight"><Slider value={a.strokeWidth} min={0.6} max={4} step={0.1} onChange={(v) => setAppearance({ strokeWidth: v })} format={(v) => `${v.toFixed(1)}px`} /></Row>
         <Row label="Idle breathing" hint="Very slow luminance pulse while idle"><Toggle value={a.breathing} onChange={(v) => setAppearance({ breathing: v })} /></Row>
         <Row label="Active glow"><Toggle value={a.glow} onChange={(v) => setAppearance({ glow: v })} /></Row>
+        <Row
+          label="Thermal mode sync"
+          hint={thermal.supported
+            ? `Logo follows Fn+Q power mode — current: ${thermal.mode} (white · balance, red · performance, blue · quiet)`
+            : 'Thermal watcher not detected — run "npm run install-thermal" in the companion folder'}
+        >
+          <Toggle value={a.thermalSync} onChange={(v) => setAppearance({ thermalSync: v })} />
+        </Row>
       </Section>
       <Section title="Application reveal">
         <Row label="Reveal arrangement" hint="How icons emerge from the segment">

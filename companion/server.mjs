@@ -25,6 +25,32 @@ const APPS_FILE = path.join(DATA_DIR, 'apps.json');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 fs.mkdirSync(ICON_DIR, { recursive: true });
 
+// Thermal mode (Fn+Q power mode). The elevated ShurikenThermalWatch task writes
+// the raw mode to thermal.txt on every change. LOQ firmware numbering (verified
+// empirically): 1 = quiet, 2 = balance, 3 = performance.
+const THERMAL_FILE = path.join(DATA_DIR, 'thermal.txt');
+const THERMAL_NAMES = ['custom', 'quiet', 'balance', 'performance'];
+const thermal = { supported: false, mode: null, raw: null };
+const thermalClients = new Set(); // SSE subscribers, pushed the moment the mode changes
+function readThermalFile() {
+  try {
+    const raw = fs.readFileSync(THERMAL_FILE, 'utf8').trim();
+    let next;
+    if (raw === 'unsupported') next = { supported: false, mode: null, raw: null };
+    else {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 0) return;
+      next = { supported: true, raw: n, mode: THERMAL_NAMES[n] || 'custom' };
+    }
+    const changed = next.supported !== thermal.supported || next.raw !== thermal.raw;
+    Object.assign(thermal, next);
+    if (changed) for (const send of thermalClients) send();
+  } catch { /* file absent = thermal task not installed */ }
+}
+readThermalFile();
+fs.watch(DATA_DIR, (_evt, fname) => { if (fname === 'thermal.txt') setTimeout(readThermalFile, 50); });
+setInterval(readThermalFile, 10000).unref(); // safety net in case fs.watch misses an event
+
 // Extra origins can be allowed with SHURIKEN_ALLOWED_ORIGINS="https://a,https://b"
 const EXTRA_ORIGINS = (process.env.SHURIKEN_ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
 const ALLOW_ANY = process.env.SHURIKEN_ALLOW_ANY_ORIGIN === '1';
@@ -174,7 +200,20 @@ app.get('/api/system/status', (_req, res) => {
   res.json({
     ok: true, version: VERSION, platform: process.platform,
     appCount: apps.apps.length, lastScan: apps.lastScan, scanning: !!scanning,
+    thermal: { supported: thermal.supported, mode: thermal.mode },
   });
+});
+
+app.get('/api/thermal', (_req, res) => res.json({ ok: true, ...thermal }));
+
+// Live push channel — wallpapers update within ~100ms of an Fn+Q press
+app.get('/api/thermal/stream', (req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  const send = () => { try { res.write(`data: ${JSON.stringify({ ok: true, ...thermal })}\n\n`); } catch { /* closed */ } };
+  send();
+  thermalClients.add(send);
+  const ka = setInterval(send, 25000); // keepalive
+  req.on('close', () => { clearInterval(ka); thermalClients.delete(send); });
 });
 
 app.get('/api/apps', (_req, res) => {

@@ -19,6 +19,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   monochrome: false,
   favoritesFirst: true,
   connectors: true,
+  thermalSync: true,
 };
 
 const demo = (id: string, name: string, source = 'demo'): AppEntry => ({ id: `demo-${id}`, name, source, demo: true });

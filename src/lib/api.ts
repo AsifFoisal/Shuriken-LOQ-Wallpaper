@@ -37,6 +37,9 @@ export class BackendClient {
   status() {
     return this.req<StatusResponse>('/api/system/status', {}, 2500);
   }
+  thermal() {
+    return this.req<{ ok: boolean; supported: boolean; mode: string | null; raw: number | null }>('/api/thermal', {}, 2000);
+  }
   async apps() {
     const r = await this.req<{ apps: AppEntry[]; lastScan: string | null }>('/api/apps');
     return { ...r, apps: this.absolutize(r.apps) };

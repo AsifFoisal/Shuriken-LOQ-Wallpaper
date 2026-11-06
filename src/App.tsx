@@ -40,7 +40,7 @@ function matchShortcut(e: KeyboardEvent, combo: string) {
 }
 
 function Wallpaper() {
-  const { config, backend, toasts, deckApps } = useShuriken();
+  const { config, backend, toasts, deckApps, accent } = useShuriken();
   const ap = config.appearance;
   const { w, h } = useViewport();
   const reveal = useReveal(ap.hoverIntent, ap.closeDelay);
@@ -119,6 +119,7 @@ function Wallpaper() {
           glow={ap.glow}
           breathing={ap.breathing}
           speed={ap.animationSpeed}
+          accent={accent}
           onEnter={reveal.enterSegment}
           onLeave={reveal.leaveSegment}
           onSegmentClick={reveal.clickSegment}

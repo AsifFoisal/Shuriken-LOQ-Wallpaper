@@ -8,7 +8,9 @@
   "scripts": {
     "start": "node server.mjs",
     "install-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File install-autostart.ps1",
-    "uninstall-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File uninstall-autostart.ps1"
+    "uninstall-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File uninstall-autostart.ps1",
+    "install-thermal": "powershell -NoProfile -ExecutionPolicy Bypass -File install-thermal.ps1",
+    "uninstall-thermal": "powershell -NoProfile -ExecutionPolicy Bypass -File uninstall-thermal.ps1"
   },
   "engines": { "node": ">=18" },
   "dependencies": { "express": "^4.21.2" }

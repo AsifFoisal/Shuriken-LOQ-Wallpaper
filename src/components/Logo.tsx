@@ -15,14 +15,18 @@ interface Props {
   breathing: boolean;
   speed: number;
   interactive?: boolean;
+  accent?: { stroke: string; glow: string };
   onEnter?: (i: SegmentIndex) => void;
   onLeave?: (i: SegmentIndex) => void;
   onSegmentClick?: (i: SegmentIndex) => void;
   onSegmentContext?: (i: SegmentIndex, e: React.MouseEvent) => void;
 }
 
+const WHITE = { stroke: '#ffffff', glow: 'rgba(255,255,255,.45)' };
+
 function Logo({
   size, strokeWidth, hitPadding, active, hovered, glow, breathing, speed, interactive = true,
+  accent = WHITE,
   onEnter, onLeave, onSegmentClick, onSegmentContext,
 }: Props) {
   const k = size / VB;
@@ -41,8 +45,8 @@ function Logo({
     >
       <defs>
         <radialGradient id="nx-fill" cx="50%" cy="50%" r="50%">
-          <stop offset={`${(R_IN / R_OUT) * 100 * 0.8}%`} stopColor="#fff" stopOpacity="0.02" />
-          <stop offset="100%" stopColor="#fff" stopOpacity="0.09" />
+          <stop offset={`${(R_IN / R_OUT) * 100 * 0.8}%`} stopColor={accent.stroke} stopOpacity="0.02" />
+          <stop offset="100%" stopColor={accent.stroke} stopOpacity="0.09" />
         </radialGradient>
       </defs>
 
@@ -59,7 +63,7 @@ function Logo({
               initial={false}
               animate={{ x: off.x, y: off.y }}
               transition={{ type: 'spring', stiffness: 260, damping: 24, mass: 0.8 / speed }}
-              style={{ filter: on && glow ? 'drop-shadow(0 0 10px rgba(255,255,255,.45))' : undefined }}
+              style={{ filter: on && glow ? `drop-shadow(0 0 10px ${accent.glow})` : undefined }}
             >
               <motion.path
                 d={d}
@@ -70,7 +74,7 @@ function Logo({
                 }}
                 transition={{ duration: 0.35 / speed }}
                 fill="url(#nx-fill)"
-                stroke="#fff"
+                stroke={accent.stroke}
                 strokeWidth={strokeWidth}
                 strokeLinejoin="miter"
                 vectorEffect="non-scaling-stroke"
@@ -79,7 +83,7 @@ function Logo({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#fff"
+                  stroke={accent.stroke}
                   strokeWidth={strokeWidth * 0.6}
                   vectorEffect="non-scaling-stroke"
                   initial={{ pathLength: 0, opacity: 0.9 }}

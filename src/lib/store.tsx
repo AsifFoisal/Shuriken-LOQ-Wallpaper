@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BackendClient } from './api';
 import { DEMO_APPS, defaultConfig, seedDecks, DEFAULT_APPEARANCE } from './defaults';
+import { accentFor, type Accent } from './thermal';
 import type { AppEntry, Appearance, AppOverride, BackendState, Deck, ShurikenConfig, SegmentIndex } from './types';
 
 const LS_KEY = 'shuriken.config.v1';
@@ -17,6 +18,8 @@ interface Store {
   appsById: Map<string, AppEntry>;
   backend: BackendState;
   backendInfo: { version?: string; lastScan?: string | null; appCount?: number };
+  thermal: { supported: boolean; mode: string | null };
+  accent: Accent;
   scanning: boolean;
   toasts: Toast[];
   client: BackendClient;
@@ -167,6 +170,28 @@ export function ShurikenProvider({ children }: { children: ReactNode }) {
     const t = setInterval(checkBackend, backend === 'online' ? 20000 : 6000);
     return () => clearInterval(t);
   }, [checkBackend, backend]);
+
+  // Thermal mode (Fn+Q power mode) — live SSE push, slow poll only as a fallback
+  const [thermal, setThermal] = useState<{ supported: boolean; mode: string | null }>({ supported: false, mode: null });
+  useEffect(() => {
+    if (backend !== 'online') return;
+    let alive = true;
+    const apply = (t: { supported?: boolean; mode?: string | null }) => {
+      if (alive) setThermal({ supported: !!t.supported, mode: t.mode ?? null });
+    };
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(client.base + '/api/thermal/stream');
+      es.onmessage = (e) => { try { apply(JSON.parse(e.data)); } catch { /* partial frame */ } };
+    } catch { /* EventSource unavailable — polling covers it */ }
+    const tick = async () => {
+      const t = await client.thermal().catch(() => null);
+      if (t) apply(t);
+    };
+    tick();
+    const iv = window.setInterval(tick, 4000);
+    return () => { alive = false; es?.close(); clearInterval(iv); };
+  }, [backend, client]);
 
   const usingDemo = realApps.length === 0;
   const apps = useMemo(() => (usingDemo ? DEMO_APPS : realApps), [usingDemo, realApps]);
@@ -337,8 +362,13 @@ export function ShurikenProvider({ children }: { children: ReactNode }) {
   }, [update, realApps]);
   const importConfig = useCallback((c: ShurikenConfig) => update(() => normalize(c)), [update]);
 
+  const accent = useMemo(
+    () => accentFor(config.appearance.thermalSync ? thermal.mode : null),
+    [config.appearance.thermalSync, thermal.mode],
+  );
+
   const value: Store = {
-    config, apps, appsById, backend, backendInfo, scanning, toasts, client,
+    config, apps, appsById, backend, backendInfo, thermal, accent, scanning, toasts, client,
     toast, update, setAppearance, setDeck, addToDeck, removeFromDeck, moveToDeck, moveInDeck,
     setOverride, toggleFavorite, displayName, deckApps, launch, reveal, scan, checkBackend,
     saveNow, resetLayout, resetAll, importConfig,
