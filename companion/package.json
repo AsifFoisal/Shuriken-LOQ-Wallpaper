@@ -1,0 +1,15 @@
+{
+  "name": "shuriken-companion",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local application discovery & launcher service for the Shuriken Lively wallpaper",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "install-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File install-autostart.ps1",
+    "uninstall-autostart": "powershell -NoProfile -ExecutionPolicy Bypass -File uninstall-autostart.ps1"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": { "express": "^4.21.2" }
+}

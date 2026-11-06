@@ -1,0 +1,14 @@
+{
+  "AppVersion": "1.0.0.0",
+  "Title": "Shuriken",
+  "Thumbnail": null,
+  "Preview": null,
+  "Desc": "Interactive app launcher wallpaper. Hover the three blades of the shuriken to reveal your application decks.",
+  "Author": "Shuriken",
+  "License": null,
+  "Contact": null,
+  "Type": 1,
+  "FileName": "index.html",
+  "Arguments": null,
+  "IsAbsolutePath": false
+}
