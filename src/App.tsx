@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Settings2, WifiOff } from 'lucide-react';
 import { ShurikenProvider, useShuriken } from './lib/store';
 import { useReveal } from './hooks/useReveal';
+import { R_IN, VB } from './lib/geometry';
 import Logo from './components/Logo';
 import Reveal from './components/Reveal';
+import PowerButton from './components/PowerButton';
 import ContextMenu, { type MenuState } from './components/ContextMenu';
 import { IconDialog, RenameDialog } from './components/Dialogs';
 import Settings from './components/Settings';
@@ -40,7 +42,7 @@ function matchShortcut(e: KeyboardEvent, combo: string) {
 }
 
 function Wallpaper() {
-  const { config, backend, toasts, deckApps, accent } = useShuriken();
+  const { config, backend, toasts, deckApps, accent, powerOff } = useShuriken();
   const ap = config.appearance;
   const { w, h } = useViewport();
   const reveal = useReveal(ap.hoverIntent, ap.closeDelay);
@@ -131,6 +133,17 @@ function Wallpaper() {
           }}
         />
       </div>
+
+      {/* Power button in the hollow center (hold-to-confirm) */}
+      {config.centerAction === 'power' && backend === 'online' && (
+        <PowerButton
+          cx={cx}
+          cy={cy}
+          diameter={logoPx * ((R_IN * 2) / VB)}
+          veiled={reveal.active !== null}
+          onTrigger={powerOff}
+        />
+      )}
 
       {/* Deck name inside the hollow center (only while revealed) */}
       <AnimatePresence mode="wait">

@@ -38,6 +38,10 @@ interface Store {
   launch: (app: AppEntry) => Promise<boolean>;
   reveal: (app: AppEntry) => Promise<void>;
   scan: (forceIcons?: boolean) => Promise<void>;
+  refreshApps: () => Promise<void>;
+  resolvePins: (paths: string[]) => Promise<AppEntry[]>;
+  unpin: (id: string) => Promise<void>;
+  powerOff: () => Promise<void>;
   checkBackend: () => Promise<boolean>;
   saveNow: () => Promise<void>;
   resetLayout: () => void;
@@ -71,6 +75,7 @@ function normalize(c: Partial<ShurikenConfig>): ShurikenConfig {
     decks,
     overrides: c.overrides && typeof c.overrides === 'object' ? c.overrides : {},
     favorites: Array.isArray(c.favorites) ? c.favorites : [],
+    centerAction: c.centerAction === 'power' ? 'power' : 'none',
     appearance: migrateFill({ ...DEFAULT_APPEARANCE, ...(c.appearance || {}) }),
   };
 }
@@ -348,6 +353,69 @@ export function ShurikenProvider({ children }: { children: ReactNode }) {
     [backend, client, applyApps, toast],
   );
 
+  // ---------------------------------------------------------------- pins (files & folders)
+  const refreshApps = useCallback(async () => {
+    try {
+      const r = await client.apps();
+      applyApps(r.apps);
+    } catch {
+      /* offline — keep whatever we have */
+    }
+  }, [client, applyApps]);
+
+  const resolvePins = useCallback(
+    async (paths: string[]) => {
+      if (backend !== 'online') {
+        toast('Companion service is offline', 'warn');
+        return [];
+      }
+      try {
+        const r = await client.pinResolve(paths);
+        const entries: AppEntry[] = [];
+        for (const x of r.results) {
+          if (x.ok && x.entry) entries.push(x.entry);
+          else toast(x.error || `Couldn't pin ${x.path}`, 'error');
+        }
+        if (entries.length) await refreshApps();
+        return entries;
+      } catch (e) {
+        toast(`Pinning failed: ${(e as Error).message}`, 'error');
+        return [];
+      }
+    },
+    [backend, client, refreshApps, toast],
+  );
+
+  const unpin = useCallback(
+    async (id: string) => {
+      try {
+        await client.pinRemove(id);
+      } catch (e) {
+        toast(`Couldn't unpin: ${(e as Error).message}`, 'error');
+        return;
+      }
+      // strip the item everywhere so no deck keeps a dangling id
+      update((c) => ({
+        ...c,
+        decks: c.decks.map((d) => ({ ...d, appIds: d.appIds.filter((x) => x !== id) })) as ShurikenConfig['decks'],
+        favorites: c.favorites.filter((x) => x !== id),
+        overrides: Object.fromEntries(Object.entries(c.overrides).filter(([k]) => k !== id)),
+      }));
+      toast('Unpinned', 'success');
+      await refreshApps();
+    },
+    [client, update, toast, refreshApps],
+  );
+
+  const powerOff = useCallback(async () => {
+    try {
+      await client.powerOff();
+      toast('Shutting down…', 'warn');
+    } catch (e) {
+      toast(`Power off failed: ${(e as Error).message}`, 'error');
+    }
+  }, [client, toast]);
+
   const saveNow = useCallback(async () => {
     localStorage.setItem(LS_KEY, JSON.stringify(configRef.current));
     if (backend === 'online') {
@@ -384,8 +452,8 @@ export function ShurikenProvider({ children }: { children: ReactNode }) {
   const value: Store = {
     config, apps, appsById, backend, backendInfo, thermal, accent, scanning, toasts, client,
     toast, update, setAppearance, setDeck, addToDeck, removeFromDeck, moveToDeck, moveInDeck,
-    setOverride, toggleFavorite, displayName, deckApps, launch, reveal, scan, checkBackend,
-    saveNow, resetLayout, resetAll, importConfig,
+    setOverride, toggleFavorite, displayName, deckApps, launch, reveal, scan, refreshApps, resolvePins, unpin, powerOff,
+    checkBackend, saveNow, resetLayout, resetAll, importConfig,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

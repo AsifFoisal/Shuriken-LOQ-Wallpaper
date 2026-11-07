@@ -58,6 +58,9 @@ export default function AppIcon({ app, size, className = '' }: Props) {
       />
     );
   }
+  if (app.kind === 'folder') {
+    return <Folder className={`text-white/75 ${className}`} style={{ width: inner, height: inner }} strokeWidth={1.4} />;
+  }
   const h = hue(app.name);
   return (
     <span

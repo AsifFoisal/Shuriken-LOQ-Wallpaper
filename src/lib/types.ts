@@ -4,6 +4,7 @@ export interface AppEntry {
   id: string;
   name: string;
   source: string;
+  /** 'shortcut' | 'url' | 'exe' | 'uwp' — or 'file' | 'folder' for pinned paths */
   kind?: string;
   target?: string;
   shortcut?: string;
@@ -63,7 +64,42 @@ export interface ShurikenConfig {
   shortcut: string;
   backendUrl: string;
   autoSeeded: boolean;
+  /** Action bound to the hollow center of the logo ('power' = hold-to-shutdown). */
+  centerAction: 'none' | 'power';
   updatedAt: number;
 }
 
 export type BackendState = 'connecting' | 'online' | 'offline';
+
+/** Response of GET /api/power — the companion's registered power-off script. */
+export interface PowerInfo {
+  ok: boolean;
+  script: string | null;
+  configured: boolean;
+}
+
+/** One row of the companion's directory listing (file picker). */
+export interface FsEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+  size: number | null;
+}
+
+export interface FsRoots {
+  drives: { path: string; label: string; type: string }[];
+  quick: { name: string; path: string }[];
+}
+
+export interface FsListing {
+  dir: string;
+  parent: string | null;
+  entries: FsEntry[];
+}
+
+export interface PinResolveResult {
+  path: string;
+  ok: boolean;
+  error?: string;
+  entry?: AppEntry;
+}

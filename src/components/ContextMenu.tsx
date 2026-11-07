@@ -90,7 +90,11 @@ export default function ContextMenu({ menu, onClose, onRename, onChangeIcon }: P
               ))}
           </div>
         )}
-        <Item icon={FolderOpen} label="View application location" onClick={act(() => reveal(menu.app))} />
+        <Item
+          icon={FolderOpen}
+          label={menu.app.kind === 'file' || menu.app.kind === 'folder' ? 'Reveal in Explorer' : 'View application location'}
+          onClick={act(() => reveal(menu.app))}
+        />
         <div className="my-1 h-px bg-white/10" />
         <Item icon={Trash2} label="Remove from this category" danger onClick={act(() => removeFromDeck(menu.segment, menu.app.id))} />
       </motion.div>

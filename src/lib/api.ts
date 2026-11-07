@@ -1,4 +1,4 @@
-import type { AppEntry, ShurikenConfig } from './types';
+import type { AppEntry, FsListing, FsRoots, PinResolveResult, PowerInfo, ShurikenConfig } from './types';
 
 export interface StatusResponse {
   ok: boolean;
@@ -57,6 +57,36 @@ export class BackendClient {
   }
   reveal(id: string) {
     return this.req<{ ok: boolean; location?: string }>('/api/apps/reveal', { method: 'POST', body: JSON.stringify({ id }) });
+  }
+  // ---- pins (files & folders) + picker browsing
+  async pinResolve(paths: string[]) {
+    const r = await this.req<{ results: PinResolveResult[] }>(
+      '/api/pins/resolve',
+      { method: 'POST', body: JSON.stringify({ paths }) },
+      120000, // each path spawns PowerShell for icon extraction
+    );
+    return {
+      results: r.results.map((x) => (x.entry ? { ...x, entry: this.absolutize([x.entry])[0] } : x)),
+    };
+  }
+  pinRemove(id: string) {
+    return this.req<{ ok: boolean; removed: boolean }>('/api/pins/remove', { method: 'POST', body: JSON.stringify({ id }) });
+  }
+  fsRoots() {
+    return this.req<FsRoots>('/api/fs/roots', {}, 10000);
+  }
+  fsList(dir: string) {
+    return this.req<FsListing>(`/api/fs/list?dir=${encodeURIComponent(dir)}`, {}, 10000);
+  }
+  // ---- power button (hold-to-shutdown)
+  powerInfo() {
+    return this.req<PowerInfo>('/api/power');
+  }
+  setPowerScript(path: string) {
+    return this.req<{ ok: boolean; script: string | null }>('/api/power/script', { method: 'POST', body: JSON.stringify({ path }) });
+  }
+  powerOff(dryRun = false) {
+    return this.req<{ ok: boolean; wouldRun?: string }>('/api/power/off', { method: 'POST', body: JSON.stringify({ dryRun }) }, 10000);
   }
   getConfig() {
     return this.req<ShurikenConfig | null>('/api/config');

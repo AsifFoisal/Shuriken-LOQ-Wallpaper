@@ -24,3 +24,6 @@ desktop.ini
 # Local env files
 .env
 .env.*
+
+# ZCode local state
+.zcode/

@@ -64,6 +64,7 @@ export function defaultConfig(): ShurikenConfig {
     shortcut: 'Ctrl+Alt+N',
     backendUrl: DEFAULT_BACKEND,
     autoSeeded: false,
+    centerAction: 'none',
     updatedAt: 0,
   };
 }

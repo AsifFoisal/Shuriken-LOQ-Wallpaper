@@ -1,14 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, Reorder, useDragControls } from 'framer-motion';
 import {
-  ArrowDown, ArrowUp, Download, GripVertical, Image as ImageIcon, Keyboard, LayoutGrid, Library, Palette,
-  Pencil, Plus, RefreshCw, RotateCcw, Save, Search, Server, Star, Trash2, Upload, X,
+  ArrowDown, ArrowUp, Download, FolderPlus, GripVertical, Image as ImageIcon, Keyboard, LayoutGrid, Library, Palette,
+  Pencil, PinOff, Plus, RefreshCw, RotateCcw, Save, Search, Server, Star, Trash2, Upload, X,
 } from 'lucide-react';
 import type { AppEntry, ShurikenConfig, SegmentIndex } from '../lib/types';
 import { useShuriken } from '../lib/store';
 import { SEGMENT_LABELS } from '../lib/geometry';
 import Logo from './Logo';
 import AppIcon from './AppIcon';
+import FilePicker from './FilePicker';
 import { Row, Section, Segmented, Slider, Toggle } from './ui';
 
 type Tab = 'decks' | 'library' | 'appearance' | 'general';
@@ -23,6 +24,23 @@ interface Props {
 export default function Settings({ onClose, onRename, onChangeIcon, initialSegment = 0 }: Props) {
   const [tab, setTab] = useState<Tab>('decks');
   const [seg, setSeg] = useState<SegmentIndex>(initialSegment);
+  // which target the file picker pins into: a segment index, or the library (pin only)
+  const [picker, setPicker] = useState<SegmentIndex | 'library' | null>(null);
+  const { config, resolvePins, addToDeck, toast } = useShuriken();
+
+  const handlePick = async (paths: string[]): Promise<boolean> => {
+    const target = picker;
+    const entries = await resolvePins(paths);
+    if (!entries.length) return false;
+    if (target !== 'library') {
+      entries.forEach((e) => addToDeck(target as SegmentIndex, e.id));
+      toast(`Pinned ${entries.length} item${entries.length > 1 ? 's' : ''} to ${config.decks[target as SegmentIndex].name}`, 'success');
+    } else {
+      toast(`Pinned ${entries.length} item${entries.length > 1 ? 's' : ''} — assign them from the Library`, 'success');
+    }
+    return true;
+  };
+
   const tabs: { id: Tab; label: string; icon: typeof LayoutGrid }[] = [
     { id: 'decks', label: 'Decks', icon: LayoutGrid },
     { id: 'library', label: 'Library', icon: Library },
@@ -68,20 +86,21 @@ export default function Settings({ onClose, onRename, onChangeIcon, initialSegme
             <X className="h-4 w-4" />
           </button>
           <div className="nx-scroll flex-1 overflow-y-auto p-7">
-            {tab === 'decks' && <DecksTab seg={seg} setSeg={setSeg} onRename={onRename} onChangeIcon={onChangeIcon} />}
-            {tab === 'library' && <LibraryTab onRename={onRename} onChangeIcon={onChangeIcon} />}
+            {tab === 'decks' && <DecksTab seg={seg} setSeg={setSeg} onRename={onRename} onChangeIcon={onChangeIcon} onPinFiles={() => setPicker(seg)} />}
+            {tab === 'library' && <LibraryTab onRename={onRename} onChangeIcon={onChangeIcon} onPinFiles={() => setPicker('library')} />}
             {tab === 'appearance' && <AppearanceTab />}
             {tab === 'general' && <GeneralTab />}
           </div>
         </div>
       </motion.div>
+      {picker !== null && <FilePicker onClose={() => setPicker(null)} onPick={handlePick} />}
     </motion.div>
   );
 }
 
 /* ================================================================== Decks */
 
-function DecksTab({ seg, setSeg, onRename, onChangeIcon }: { seg: SegmentIndex; setSeg: (s: SegmentIndex) => void; onRename: (a: AppEntry) => void; onChangeIcon: (a: AppEntry) => void }) {
+function DecksTab({ seg, setSeg, onRename, onChangeIcon, onPinFiles }: { seg: SegmentIndex; setSeg: (s: SegmentIndex) => void; onRename: (a: AppEntry) => void; onChangeIcon: (a: AppEntry) => void; onPinFiles: () => void }) {
   const { config, setDeck, appsById, removeFromDeck, moveToDeck, displayName, apps, addToDeck, backend } = useShuriken();
   const [hov, setHov] = useState<SegmentIndex | null>(null);
   const [adding, setAdding] = useState(false);
@@ -147,10 +166,15 @@ function DecksTab({ seg, setSeg, onRename, onChangeIcon }: { seg: SegmentIndex; 
         )}
 
         <div className="mb-2 mt-4 flex items-center justify-between">
-          <span className="text-[10.5px] uppercase tracking-[0.22em] text-white/35">Applications · drag to reorder</span>
-          <button type="button" className="nx-btn" onClick={() => setAdding((v) => !v)}>
-            <Plus className="h-3.5 w-3.5" /> {adding ? 'Done' : 'Add applications'}
-          </button>
+          <span className="text-[10.5px] uppercase tracking-[0.22em] text-white/35">Items · drag to reorder</span>
+          <div className="flex items-center gap-2">
+            <button type="button" className="nx-btn" onClick={onPinFiles} disabled={backend !== 'online'} title="Pin a file or folder from disk to this deck">
+              <FolderPlus className="h-3.5 w-3.5" /> Pin file or folder
+            </button>
+            <button type="button" className="nx-btn" onClick={() => setAdding((v) => !v)}>
+              <Plus className="h-3.5 w-3.5" /> {adding ? 'Done' : 'Add applications'}
+            </button>
+          </div>
         </div>
 
         {adding && (
@@ -190,7 +214,7 @@ function DecksTab({ seg, setSeg, onRename, onChangeIcon }: { seg: SegmentIndex; 
             />
           ))}
         </Reorder.Group>
-        {!deck.appIds.length && <div className="rounded-xl border border-dashed border-white/10 py-10 text-center text-[12.5px] text-white/35">This deck is empty. Add applications to bring the segment to life.</div>}
+        {!deck.appIds.length && <div className="rounded-xl border border-dashed border-white/10 py-10 text-center text-[12.5px] text-white/35">This deck is empty. Add applications or pin files and folders to bring the segment to life.</div>}
       </div>
     </div>
   );
@@ -249,8 +273,8 @@ function IconBtn({ children, title, onClick, disabled }: { children: React.React
 
 /* ================================================================== Library */
 
-function LibraryTab({ onRename, onChangeIcon }: { onRename: (a: AppEntry) => void; onChangeIcon: (a: AppEntry) => void }) {
-  const { apps, config, addToDeck, removeFromDeck, displayName, toggleFavorite, backend, scan, scanning } = useShuriken();
+function LibraryTab({ onRename, onChangeIcon, onPinFiles }: { onRename: (a: AppEntry) => void; onChangeIcon: (a: AppEntry) => void; onPinFiles: () => void }) {
+  const { apps, config, addToDeck, removeFromDeck, displayName, toggleFavorite, backend, scan, scanning, unpin } = useShuriken();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all' | 'unassigned' | 'favorites'>('all');
   const [limit, setLimit] = useState(150);
@@ -269,12 +293,17 @@ function LibraryTab({ onRename, onChangeIcon }: { onRename: (a: AppEntry) => voi
     <div>
       <div className="mb-5 flex items-end justify-between gap-4 pr-10">
         <div>
-          <h2 className="text-lg font-light tracking-wide text-white">Application Library</h2>
-          <p className="text-[12px] text-white/40">{apps.length} applications{apps.every((a) => a.demo) ? ' (demo)' : ' detected'}. Assign them to any segment.</p>
+          <h2 className="text-lg font-light tracking-wide text-white">Library</h2>
+          <p className="text-[12px] text-white/40">{apps.length} items{apps.every((a) => a.demo) ? ' (demo)' : ' detected'}. Assign them to any segment.</p>
         </div>
-        <button type="button" className="nx-btn" disabled={backend !== 'online' || scanning} onClick={() => scan()}>
-          <RefreshCw className={`h-3.5 w-3.5 ${scanning ? 'animate-spin' : ''}`} /> {scanning ? 'Scanning…' : 'Rescan'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" className="nx-btn" disabled={backend !== 'online'} onClick={onPinFiles} title="Pin a file or folder from disk">
+            <FolderPlus className="h-3.5 w-3.5" /> Pin file or folder
+          </button>
+          <button type="button" className="nx-btn" disabled={backend !== 'online' || scanning} onClick={() => scan()}>
+            <RefreshCw className={`h-3.5 w-3.5 ${scanning ? 'animate-spin' : ''}`} /> {scanning ? 'Scanning…' : 'Rescan'}
+          </button>
+        </div>
       </div>
       <div className="mb-4 flex items-center gap-3">
         <div className="flex flex-1 items-center gap-2 rounded-lg border border-white/10 px-3">
@@ -294,6 +323,11 @@ function LibraryTab({ onRename, onChangeIcon }: { onRename: (a: AppEntry) => voi
             <IconBtn title="Favorite" onClick={() => toggleFavorite(a.id)}><Star className={`h-3.5 w-3.5 ${config.favorites.includes(a.id) ? 'fill-white' : ''}`} /></IconBtn>
             <IconBtn title="Rename" onClick={() => onRename(a)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
             <IconBtn title="Change icon" onClick={() => onChangeIcon(a)}><ImageIcon className="h-3.5 w-3.5" /></IconBtn>
+            {a.source === 'pinned' && (
+              <IconBtn title="Unpin (removes it from all decks)" onClick={() => unpin(a.id)}>
+                <PinOff className="h-3.5 w-3.5 text-red-300/80" />
+              </IconBtn>
+            )}
             <div className="ml-2 flex gap-1">
               {([0, 1, 2] as SegmentIndex[]).map((i) => {
                 const on = config.decks[i].appIds.includes(a.id);
@@ -401,6 +435,56 @@ function AppearanceTab() {
 
 /* ================================================================== General */
 
+/** Registers the batch script the hold-to-power action runs (server-side path). */
+function PowerScriptRow() {
+  const { client, toast, backend } = useShuriken();
+  const [script, setScript] = useState('');
+  const [v, setV] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (backend !== 'online') return;
+    client.powerInfo().then((r) => {
+      setScript(r.script || '');
+      setV(r.script || '');
+    }).catch(() => { /* offline */ });
+  }, [backend, client]);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const r = await client.setPowerScript(v.trim());
+      setScript(r.script || '');
+      setV(r.script || '');
+      toast(r.script ? 'Power-off script registered' : 'Power-off script cleared', 'success');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="py-2.5">
+      <div className="mb-1.5 text-[13px] text-white/85">Power-off script</div>
+      <div className="flex items-center gap-2">
+        <input
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && save()}
+          placeholder="C:\path\to\script.bat"
+          spellCheck={false}
+          className="nx-input min-w-0 flex-1 font-mono text-[11.5px]"
+        />
+        <button type="button" className="nx-btn" disabled={backend !== 'online' || busy} onClick={save}>Save</button>
+      </div>
+      <div className="mt-1 text-[11px] text-white/40">
+        {script ? `Registered: ${script}` : 'No script registered — the power action is inert'}
+      </div>
+    </div>
+  );
+}
+
 function GeneralTab() {
   const { config, update, backend, backendInfo, scan, scanning, checkBackend, saveNow, resetLayout, resetAll, importConfig, toast } = useShuriken();
   const [url, setUrl] = useState(config.backendUrl);
@@ -466,6 +550,20 @@ npm run install-autostart    # start with Windows`}</pre>
             <Keyboard className="h-3.5 w-3.5" /> {capturing ? 'Press keys…' : config.shortcut}
           </button>
         </Row>
+      </Section>
+
+      <Section title="Power button">
+        <Row label="Logo center action" hint="Hold the middle of the logo 1.5s — a ring fills, releasing early cancels">
+          <Segmented
+            value={config.centerAction}
+            onChange={(v) => update((c) => ({ ...c, centerAction: v }))}
+            options={[
+              { value: 'none', label: 'None' },
+              { value: 'power', label: 'Power off' },
+            ]}
+          />
+        </Row>
+        <PowerScriptRow />
       </Section>
 
       <Section title="Configuration">
